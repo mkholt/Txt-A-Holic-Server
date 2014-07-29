@@ -18,18 +18,23 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-namespace mholt\txtAHolic\ServerBundle\Controller;
+namespace mholt\txtAHolic\UserBundle\Tests\Controller;
 
-use FOS\RestBundle\Controller\FOSRestController;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Description of UsersController
+ * Description of UserControllerTest
  *
  * @author morten
  */
-class UsersController extends FOSRestController {
-    public function getUsersAction()
+class UserControllerTest extends WebTestCase {
+    public function testDisallowRegisterGet()
     {
-        return $this->handleView($this->view(array("hello" => "world"), 200));
+        $client = static::createClient();
+        $client->request('GET', '/users/register');
+        $this->assertEquals(
+                Response::HTTP_METHOD_NOT_ALLOWED,
+                $client->getResponse()->getStatusCode());
     }
 }
