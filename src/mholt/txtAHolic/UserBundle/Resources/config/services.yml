@@ -2,6 +2,10 @@ parameters:
 #    user.example.class: mholt\txtAHolic\UserBundle\Example
 
 services:
-#    user.example:
-#        class: %user.example.class%
-#        arguments: [@service_id, "plain_value", %parameter%]
+    wsse.security.authentication.provider:
+        class: mholt\txtAHolic\UserBundle\Security\Provider\WsseProvider
+        arguments: ["", "%kernel.cache_dir%/security/nonces"]
+
+    wsse.security.authentication.listener:
+        class: mholt\txtAHolic\UserBundle\Security\Firewall\WsseListener
+        arguments: ["@security.context", "@security.authentication.manager"]

@@ -15,13 +15,12 @@ security:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
-
+            
         default:
             pattern: ^/
             anonymous: ~
-            form_login:
-                login_path: /users/login
-                check_path: /users/login_check
+            stateless: true
+            wsse: true
 
     access_control:
         - { path: ^/users/, roles: IS_AUTHENTICATED_ANONYMOUSLY }

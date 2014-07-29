@@ -1,10 +1,4 @@
 users:
     type: rest
     resource: mholt\txtAHolic\UserBundle\Controller\UserController
-
-login:
-    path:     /users/login
-    defaults: { _controller: UserBundle:User:login }
     
-login_check:
-    path: /users/login_check

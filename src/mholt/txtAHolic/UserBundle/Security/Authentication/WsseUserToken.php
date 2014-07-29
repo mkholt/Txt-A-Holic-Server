@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (C) 2014 Txt-A-Holic
+ * Copyright (C) 2014 Morten Holt <thawk@t-hawk.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,29 +18,30 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-namespace mholt\txtAHolic\UserBundle\Controller;
+namespace mholt\txtAHolic\UserBundle\Security\Authentication;
 
-use FOS\RestBundle\Controller\FOSRestController;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\Authentication\Token\AbstractToken;
 
 /**
- * Description of UsersController
+ * Description of WsseUserToken
  *
  * @author morten
  */
-class UserController extends FOSRestController {
-    /**
-     * @Post("/users/register")
-     * @return Response
-     */
-    public function registerUserAction()
+class WsseUserToken extends AbstractToken {
+	public $created;
+	public $digest;
+	public $nonce;
+	
+	public function __construct(array $roles = array())
+	{
+		parent::__construct($roles);
+		
+		// If the user has roles, consider it authenticated
+        $this->setAuthenticated(count($roles) > 0);
+	}
+	
+	public function getCredentials()
     {
-        
-        return $this->handleView($this->view(array("hello" => "world"), Response::HTTP_OK));
-    }
-    
-    public function postUserAction()
-    {
-        return $this->handleView($this->view(array("hello" => "world"), Response::HTTP_OK));
+        return '';
     }
 }
