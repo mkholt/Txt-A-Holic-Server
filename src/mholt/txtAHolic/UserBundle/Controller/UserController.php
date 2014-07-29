@@ -22,6 +22,7 @@ namespace mholt\txtAHolic\UserBundle\Controller;
 
 use FOS\RestBundle\Controller\FOSRestController;
 use Symfony\Component\HttpFoundation\Response;
+use FOS\RestBundle\Controller\Annotations\Post;
 
 /**
  * Description of UsersController
