@@ -129,4 +129,13 @@ class User implements UserInterface, \Serializable {
                 $this->username,
                 $this->password) = unserialize($serialized);
     }
+	
+	public function fromArray($arr)
+	{
+		$this->id = (!empty($arr['id'])) ? $arr['id'] : null;
+		$this->username = $arr['username'];
+		$this->password = $arr['password'];
+		
+		return $this;
+	}
 }

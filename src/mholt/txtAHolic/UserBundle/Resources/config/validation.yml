@@ -1,0 +1,12 @@
+mholt\txtAHolic\UserBundle\Entity\User:
+    constraints:
+        - Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity:
+            fields: username
+            message: User already exists
+    properties:
+        username:
+            - NotBlank:
+                message: Missing username
+        password:
+            - NotBlank:
+                message: Missing password

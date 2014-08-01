@@ -20,9 +20,12 @@
 
 namespace mholt\txtAHolic\UserBundle\Controller;
 
-use FOS\RestBundle\Controller\FOSRestController;
-use Symfony\Component\HttpFoundation\Response;
 use FOS\RestBundle\Controller\Annotations\Post;
+use FOS\RestBundle\Controller\FOSRestController;
+use mholt\txtAHolic\UserBundle\Entity\User;
+use mholt\txtAHolic\UserBundle\Form\Type\UserType;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Description of UsersController
@@ -34,11 +37,41 @@ class UserController extends FOSRestController {
      * @Post("/users/register")
      * @return Response
      */
-    public function registerUserAction()
+    public function registerUserAction(Request $request)
     {
-        
-        return $this->handleView($this->view(array("hello" => "world"), Response::HTTP_OK));
+		$user = new User();
+		$form = $this->createForm(new UserType(), $user, array(
+			'action' => $this->generateUrl('register_user')
+		));
+		
+		$form->submit($request->request->all());
+		if ($form->isValid())
+		{
+			$em = $this->getDoctrine()->getManager();
+			$em->persist($form->getData());
+			$em->flush();
+			
+			return $this->handleView($this->view("User registered", Response::HTTP_OK));
+		}
+		else
+		{
+			return $this->handleView($this->view($form), Response::HTTP_BAD_REQUEST);
+		}
+		
+		return $this->handleView($this->view("Missing user data", Response::HTTP_BAD_REQUEST));
     }
+	
+	/**
+	 * @Post("/users/auth")
+	 * @return Response
+	 */
+	public function authUserAction()
+	{
+		/* @var $user User */
+		$user = $this->getUser();
+		
+		return $this->handleView($this->view("User authenticated: " . $user->getUsername()), Response::HTTP_OK);
+	}
     
     public function postUserAction()
     {

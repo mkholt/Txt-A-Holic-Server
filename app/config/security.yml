@@ -23,6 +23,5 @@ security:
             wsse: true
 
     access_control:
-        - { path: ^/users/, roles: IS_AUTHENTICATED_ANONYMOUSLY }
-        - { path: ^/users$, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+        - { path: ^/users/register$, roles: IS_AUTHENTICATED_ANONYMOUSLY }
         - { path: ^/, roles: ROLE_USER }
