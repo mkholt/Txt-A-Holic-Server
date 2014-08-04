@@ -4,7 +4,7 @@ parameters:
 services:
     wsse.security.authentication.provider:
         class: mholt\txtAHolic\UserBundle\Security\Provider\WsseProvider
-        arguments: ["", "%kernel.cache_dir%/security/nonces"]
+        arguments: ["", "@doctrine.orm.entity_manager"]
 
     wsse.security.authentication.listener:
         class: mholt\txtAHolic\UserBundle\Security\Firewall\WsseListener

@@ -20,12 +20,14 @@
 
 namespace mholt\txtAHolic\UserBundle\Security\Provider;
 
+use Doctrine\ORM\EntityManagerInterface;
+use mholt\txtAHolic\UserBundle\Security\Authentication\WsseUserToken;
+use mholt\txtAHolic\UserBundle\Entity\Nonce;
 use Symfony\Component\Security\Core\Authentication\Provider\AuthenticationProviderInterface;
-use Symfony\Component\Security\Core\User\UserProviderInterface;
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\NonceExpiredException;
-use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
-use mholt\txtAHolic\UserBundle\Security\Authentication\WsseUserToken;
+use Symfony\Component\Security\Core\User\UserProviderInterface;
 
 /**
  * Description of WsseProvider
@@ -35,12 +37,12 @@ use mholt\txtAHolic\UserBundle\Security\Authentication\WsseUserToken;
 class WsseProvider implements AuthenticationProviderInterface
 {
     private $userProvider;
-    private $cacheDir;
+    private $em;
 
-    public function __construct(UserProviderInterface $userProvider, $cacheDir)
+    public function __construct(UserProviderInterface $userProvider, EntityManagerInterface $em)
     {
         $this->userProvider = $userProvider;
-        $this->cacheDir     = $cacheDir;
+		$this->em = $em;
     }
 
     public function authenticate(TokenInterface $token)
@@ -77,14 +79,23 @@ class WsseProvider implements AuthenticationProviderInterface
 
         // Validate that the nonce is *not* used in the last 5 minutes
         // if it has, this could be a replay attack
-        if (file_exists($this->cacheDir.'/'.$nonce) && file_get_contents($this->cacheDir.'/'.$nonce) + 300 > time()) {
-            throw new NonceExpiredException('Previously used nonce detected');
-        }
-        // If cache directory does not exist we create it
-        if (!is_dir($this->cacheDir)) {
-            mkdir($this->cacheDir, 0777, true);
-        }
-        file_put_contents($this->cacheDir.'/'.$nonce, time());
+		$repo = $this->em->getRepository('UserBundle:Nonce');
+		/* @var $nonce Nonce */
+		$nonceObj = $repo->findOneBy(array('nonce' => $nonce));
+		if (!is_null($nonceObj) && !$nonceObj->isExpired()) {
+			throw new NonceExpiredException('Previously used nonce detected');
+		}
+		
+		// The nonce was either expired, or completely new, persist the new nonce
+		if (is_null($nonceObj))
+		{
+			// The nonce was new, create new object to store it
+			$nonceObj = new Nonce();
+			$nonceObj->setNonce($nonce);
+			$this->em->persist($nonceObj);
+		}
+		$nonceObj->setTime(new \DateTime());
+		$this->em->flush();
 
         // Validate Secret
         $expected = base64_encode(sha1(base64_decode($nonce).$created.$secret, true));
