@@ -22,6 +22,7 @@ namespace mholt\txtAHolic\UserBundle\Tests\Controller;
 
 use Liip\FunctionalTestBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\Util\SecureRandom;
 
 /**
  * Description of UserControllerTest
@@ -111,14 +112,25 @@ class UserControllerTest extends WebTestCase {
 	
 	public function testAuthenticateNewUser()
 	{
+		$username = 'test';
+		$password = 'test';
+		
 		$client = static::createClient();
 		$client->request('POST', '/users/register',
 				array(
-					'username' => 'test',
-					'password' => 'test'
+					'username' => $username,
+					'password' => $password
 				));
 		
-		$client->request('POST', '/users/auth');
+		$generator = new SecureRandom();
+		$nonce = $generator->nextBytes(10);
+		$created = date('c');
+		$passwordDigest = base64_encode(sha1($nonce . $created . $password, true));
+		
+		$client->request('POST', '/users/auth', array(), array(), array(
+			'HTTP_Authorization' => 'WSSE profile="UsernameToken"',
+			'HTTP_X-WSSE' => 'UsernameToken Username="'.$username.'", PasswordDigest="'.$passwordDigest.'", Nonce="'.base64_encode($nonce).'", Created="'.$created.'"'
+		));
 		
 		$this->assertEquals(
 				Response::HTTP_OK,
@@ -126,6 +138,6 @@ class UserControllerTest extends WebTestCase {
 		
 		$this->assertEquals(
 				"User authenticated: test",
-				$client->getResponse()->getContent());
+				json_decode($client->getResponse()->getContent()));
 	}
 }
