@@ -141,7 +141,7 @@ class UserControllerTest extends WebTestCase {
 				json_decode($client->getResponse()->getContent()));
 	}
 	
-	public function testAuthenticateNewUserFailed()
+	public function testAuthenticateNewUserWrongPassword()
 	{
 		$username = 'test';
 		$password = 'test';
@@ -157,6 +157,96 @@ class UserControllerTest extends WebTestCase {
 		$nonce = $generator->nextBytes(10);
 		$created = date('c');
 		$passwordDigest = base64_encode(sha1($nonce . $created . $password . '_fail', true));
+		
+		$client->request('POST', '/users/auth', array(), array(), array(
+			'HTTP_Authorization' => 'WSSE profile="UsernameToken"',
+			'HTTP_X-WSSE' => 'UsernameToken Username="'.$username.'", PasswordDigest="'.$passwordDigest.'", Nonce="'.base64_encode($nonce).'", Created="'.$created.'"'
+		));
+		
+		$this->assertEquals(
+				Response::HTTP_FORBIDDEN,
+				$client->getResponse()->getStatusCode());
+	}
+	
+	public function testAuthenticateNewUserTooOld()
+	{
+		$username = 'test';
+		$password = 'test';
+		
+		$client = static::createClient();
+		$client->request('POST', '/users/register',
+				array(
+					'username' => $username,
+					'password' => $password
+				));
+		
+		$generator = new SecureRandom();
+		$nonce = $generator->nextBytes(10);
+		$created = date('c', strtotime('-1 hour'));
+		$passwordDigest = base64_encode(sha1($nonce . $created . $password, true));
+		
+		$client->request('POST', '/users/auth', array(), array(), array(
+			'HTTP_Authorization' => 'WSSE profile="UsernameToken"',
+			'HTTP_X-WSSE' => 'UsernameToken Username="'.$username.'", PasswordDigest="'.$passwordDigest.'", Nonce="'.base64_encode($nonce).'", Created="'.$created.'"'
+		));
+		
+		$this->assertEquals(
+				Response::HTTP_FORBIDDEN,
+				$client->getResponse()->getStatusCode());
+	}
+	
+	public function testAuthenticateNewUserTooNew()
+	{
+		$username = 'test';
+		$password = 'test';
+		
+		$client = static::createClient();
+		$client->request('POST', '/users/register',
+				array(
+					'username' => $username,
+					'password' => $password
+				));
+		
+		$generator = new SecureRandom();
+		$nonce = $generator->nextBytes(10);
+		$created = date('c', strtotime('+1 hour'));
+		$passwordDigest = base64_encode(sha1($nonce . $created . $password, true));
+		
+		$client->request('POST', '/users/auth', array(), array(), array(
+			'HTTP_Authorization' => 'WSSE profile="UsernameToken"',
+			'HTTP_X-WSSE' => 'UsernameToken Username="'.$username.'", PasswordDigest="'.$passwordDigest.'", Nonce="'.base64_encode($nonce).'", Created="'.$created.'"'
+		));
+		
+		$this->assertEquals(
+				Response::HTTP_FORBIDDEN,
+				$client->getResponse()->getStatusCode());
+	}
+	
+	public function testAuthenticateNewUserReUsedNonce()
+	{
+		$username = 'test';
+		$password = 'test';
+		
+		$client = static::createClient();
+		$client->request('POST', '/users/register',
+				array(
+					'username' => $username,
+					'password' => $password
+				));
+		
+		$generator = new SecureRandom();
+		$nonce = $generator->nextBytes(10);
+		$created = date('c');
+		$passwordDigest = base64_encode(sha1($nonce . $created . $password, true));
+		
+		$client->request('POST', '/users/auth', array(), array(), array(
+			'HTTP_Authorization' => 'WSSE profile="UsernameToken"',
+			'HTTP_X-WSSE' => 'UsernameToken Username="'.$username.'", PasswordDigest="'.$passwordDigest.'", Nonce="'.base64_encode($nonce).'", Created="'.$created.'"'
+		));
+		
+		$this->assertEquals(
+				Response::HTTP_OK,
+				$client->getResponse()->getStatusCode());
 		
 		$client->request('POST', '/users/auth', array(), array(), array(
 			'HTTP_Authorization' => 'WSSE profile="UsernameToken"',
