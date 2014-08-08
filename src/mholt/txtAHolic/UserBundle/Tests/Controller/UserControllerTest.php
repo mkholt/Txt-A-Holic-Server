@@ -30,6 +30,34 @@ use Symfony\Component\Security\Core\Util\SecureRandom;
  * @author morten
  */
 class UserControllerTest extends WebTestCase {
+	protected function registerUser($client, $username, $password)
+	{
+		$client->request('POST', '/users/register',
+			array(
+				'username' => $username,
+				'password' => $password
+			));
+	}
+	
+	protected function getNonce()
+	{
+		$generator = new SecureRandom();
+		return $generator->nextBytes(10);
+	}
+	
+	protected function getWSSEHeader($username, $password, $time = 'now', $nonce = null)
+	{
+		$nonce = (!empty($nonce)) ? $nonce : $this->getNonce();
+		
+		$created = date('c', strtotime($time));
+		$passwordDigest = base64_encode(sha1($nonce . $created . $password, true));
+		
+		return array(
+			'HTTP_Authorization' => 'WSSE profile="UsernameToken"',
+			'HTTP_X-WSSE' => 'UsernameToken Username="'.$username.'", PasswordDigest="'.$passwordDigest.'", Nonce="'.base64_encode($nonce).'", Created="'.$created.'"'
+		);
+	}
+	
 	public function setUp()
 	{
 		$this->loadFixtures(array());
@@ -75,30 +103,22 @@ class UserControllerTest extends WebTestCase {
 	public function testRegisterNewUser()
 	{
 		$client = static::createClient();
-		$client->request('POST', '/users/register',
-				array(
-					'username' => 'test',
-					'password' => 'test'
-				));
+		$this->registerUser($client, 'test', 'test');
+		
 		$this->assertEquals(
 				Response::HTTP_OK,
 				$client->getResponse()->getStatusCode());
+		
+		$this->assertEquals(
+				"User registered",
+				json_decode($client->getResponse()->getContent()));
 	}
 	
 	public function testRegisterUserAlreadyExists()
 	{
 		$client = static::createClient();
-		$client->request('POST', '/users/register',
-				array(
-					'username' => 'test',
-					'password' => 'test'
-				));
-		
-		$client->request('POST', '/users/register',
-				array(
-					'username' => 'test',
-					'password' => 'test'
-				));
+		$this->registerUser($client, 'test', 'test');
+		$this->registerUser($client, 'test', 'test');
 		
 		$this->assertEquals(
 				Response::HTTP_BAD_REQUEST,
@@ -109,28 +129,16 @@ class UserControllerTest extends WebTestCase {
 				"User already exists",
 				$response['errors']['children']['username']['errors'][0]);
 	}
-	
+		
 	public function testAuthenticateNewUser()
 	{
 		$username = 'test';
 		$password = 'test';
 		
 		$client = static::createClient();
-		$client->request('POST', '/users/register',
-				array(
-					'username' => $username,
-					'password' => $password
-				));
+		$this->registerUser($client, 'test', 'test');
 		
-		$generator = new SecureRandom();
-		$nonce = $generator->nextBytes(10);
-		$created = date('c');
-		$passwordDigest = base64_encode(sha1($nonce . $created . $password, true));
-		
-		$client->request('POST', '/users/auth', array(), array(), array(
-			'HTTP_Authorization' => 'WSSE profile="UsernameToken"',
-			'HTTP_X-WSSE' => 'UsernameToken Username="'.$username.'", PasswordDigest="'.$passwordDigest.'", Nonce="'.base64_encode($nonce).'", Created="'.$created.'"'
-		));
+		$client->request('POST', '/users/auth', array(), array(), $this->getWSSEHeader($username, $password));
 		
 		$this->assertEquals(
 				Response::HTTP_OK,
@@ -147,21 +155,9 @@ class UserControllerTest extends WebTestCase {
 		$password = 'test';
 		
 		$client = static::createClient();
-		$client->request('POST', '/users/register',
-				array(
-					'username' => $username,
-					'password' => $password
-				));
+		$this->registerUser($client, $username, $password);
 		
-		$generator = new SecureRandom();
-		$nonce = $generator->nextBytes(10);
-		$created = date('c');
-		$passwordDigest = base64_encode(sha1($nonce . $created . $password . '_fail', true));
-		
-		$client->request('POST', '/users/auth', array(), array(), array(
-			'HTTP_Authorization' => 'WSSE profile="UsernameToken"',
-			'HTTP_X-WSSE' => 'UsernameToken Username="'.$username.'", PasswordDigest="'.$passwordDigest.'", Nonce="'.base64_encode($nonce).'", Created="'.$created.'"'
-		));
+		$client->request('POST', '/users/auth', array(), array(), $this->getWSSEHeader($username, $password . '_fail'));
 		
 		$this->assertEquals(
 				Response::HTTP_FORBIDDEN,
@@ -174,21 +170,9 @@ class UserControllerTest extends WebTestCase {
 		$password = 'test';
 		
 		$client = static::createClient();
-		$client->request('POST', '/users/register',
-				array(
-					'username' => $username,
-					'password' => $password
-				));
+		$this->registerUser($client, $username, $password);
 		
-		$generator = new SecureRandom();
-		$nonce = $generator->nextBytes(10);
-		$created = date('c', strtotime('-1 hour'));
-		$passwordDigest = base64_encode(sha1($nonce . $created . $password, true));
-		
-		$client->request('POST', '/users/auth', array(), array(), array(
-			'HTTP_Authorization' => 'WSSE profile="UsernameToken"',
-			'HTTP_X-WSSE' => 'UsernameToken Username="'.$username.'", PasswordDigest="'.$passwordDigest.'", Nonce="'.base64_encode($nonce).'", Created="'.$created.'"'
-		));
+		$client->request('POST', '/users/auth', array(), array(), $this->getWSSEHeader($username, $password, '-1 hour'));
 		
 		$this->assertEquals(
 				Response::HTTP_FORBIDDEN,
@@ -201,21 +185,9 @@ class UserControllerTest extends WebTestCase {
 		$password = 'test';
 		
 		$client = static::createClient();
-		$client->request('POST', '/users/register',
-				array(
-					'username' => $username,
-					'password' => $password
-				));
+		$this->registerUser($client, $username, $password);
 		
-		$generator = new SecureRandom();
-		$nonce = $generator->nextBytes(10);
-		$created = date('c', strtotime('+1 hour'));
-		$passwordDigest = base64_encode(sha1($nonce . $created . $password, true));
-		
-		$client->request('POST', '/users/auth', array(), array(), array(
-			'HTTP_Authorization' => 'WSSE profile="UsernameToken"',
-			'HTTP_X-WSSE' => 'UsernameToken Username="'.$username.'", PasswordDigest="'.$passwordDigest.'", Nonce="'.base64_encode($nonce).'", Created="'.$created.'"'
-		));
+		$client->request('POST', '/users/auth', array(), array(), $this->getWSSEHeader($username, $password, '+1 hour'));
 		
 		$this->assertEquals(
 				Response::HTTP_FORBIDDEN,
@@ -228,30 +200,17 @@ class UserControllerTest extends WebTestCase {
 		$password = 'test';
 		
 		$client = static::createClient();
-		$client->request('POST', '/users/register',
-				array(
-					'username' => $username,
-					'password' => $password
-				));
+		$this->registerUser($client, $username, $password);
 		
-		$generator = new SecureRandom();
-		$nonce = $generator->nextBytes(10);
-		$created = date('c');
-		$passwordDigest = base64_encode(sha1($nonce . $created . $password, true));
+		$nonce = $this->getNonce();
 		
-		$client->request('POST', '/users/auth', array(), array(), array(
-			'HTTP_Authorization' => 'WSSE profile="UsernameToken"',
-			'HTTP_X-WSSE' => 'UsernameToken Username="'.$username.'", PasswordDigest="'.$passwordDigest.'", Nonce="'.base64_encode($nonce).'", Created="'.$created.'"'
-		));
+		$client->request('POST', '/users/auth', array(), array(), $this->getWSSEHeader($username, $password, 'now', $nonce));
 		
 		$this->assertEquals(
 				Response::HTTP_OK,
 				$client->getResponse()->getStatusCode());
 		
-		$client->request('POST', '/users/auth', array(), array(), array(
-			'HTTP_Authorization' => 'WSSE profile="UsernameToken"',
-			'HTTP_X-WSSE' => 'UsernameToken Username="'.$username.'", PasswordDigest="'.$passwordDigest.'", Nonce="'.base64_encode($nonce).'", Created="'.$created.'"'
-		));
+		$client->request('POST', '/users/auth', array(), array(), $this->getWSSEHeader($username, $password, 'now', $nonce));
 		
 		$this->assertEquals(
 				Response::HTTP_FORBIDDEN,

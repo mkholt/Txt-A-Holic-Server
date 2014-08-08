@@ -50,6 +50,12 @@ class User implements UserInterface, \Serializable {
      * @ORM\Column(type="string", length=255)
      */
     protected $password;
+	
+	/**
+	 * @var string
+	 * @ORM\Column(type="string", length=255, nullable=true)
+	 */
+	protected $sessionPassword;
     
     /**
      * 
@@ -138,4 +144,27 @@ class User implements UserInterface, \Serializable {
 		
 		return $this;
 	}
+
+    /**
+     * Set sessionPassword
+     *
+     * @param string $sessionPassword
+     * @return User
+     */
+    public function setSessionPassword($sessionPassword)
+    {
+        $this->sessionPassword = $sessionPassword;
+
+        return $this;
+    }
+
+    /**
+     * Get sessionPassword
+     *
+     * @return string 
+     */
+    public function getSessionPassword()
+    {
+        return $this->sessionPassword;
+    }
 }
