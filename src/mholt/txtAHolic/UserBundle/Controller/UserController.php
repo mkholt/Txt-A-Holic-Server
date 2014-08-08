@@ -53,12 +53,8 @@ class UserController extends FOSRestController {
 			
 			return $this->handleView($this->view("User registered", Response::HTTP_OK));
 		}
-		else
-		{
-			return $this->handleView($this->view($form), Response::HTTP_BAD_REQUEST);
-		}
-		
-		return $this->handleView($this->view("Missing user data", Response::HTTP_BAD_REQUEST));
+
+		return $this->handleView($this->view($form), Response::HTTP_BAD_REQUEST);
     }
 	
 	/**
@@ -72,9 +68,4 @@ class UserController extends FOSRestController {
 		
 		return $this->handleView($this->view("User authenticated: " . $user->getUsername()), Response::HTTP_OK);
 	}
-    
-    public function postUserAction()
-    {
-        return $this->handleView($this->view(array("hello" => "world"), Response::HTTP_OK));
-    }
 }
